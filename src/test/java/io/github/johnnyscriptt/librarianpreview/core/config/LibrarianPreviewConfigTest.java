@@ -26,6 +26,22 @@ class LibrarianPreviewConfigTest {
     }
 
     @Test
+    void highlightsStartEmpty() {
+        assertTrue(new LibrarianPreviewConfig().highlights.isEmpty());
+    }
+
+    @Test
+    void clampRepairsMissingAndDuplicateHighlights() {
+        LibrarianPreviewConfig config = new LibrarianPreviewConfig();
+        config.highlights = null;
+        config.clamp();
+        assertTrue(config.highlights.isEmpty());
+        config.highlights = new java.util.ArrayList<>(java.util.List.of("minecraft:mending", "minecraft:mending"));
+        config.clamp();
+        assertEquals(java.util.List.of("minecraft:mending"), config.highlights);
+    }
+
+    @Test
     void clampTreatsZeroAsAbsentAndTakesDefault() {
         LibrarianPreviewConfig config = new LibrarianPreviewConfig();
         config.rangeBlocks = 0;

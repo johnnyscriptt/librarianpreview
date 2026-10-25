@@ -1,6 +1,11 @@
 package io.github.johnnyscriptt.librarianpreview.gametest;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import io.github.johnnyscriptt.librarianpreview.client.Highlights;
+import io.github.johnnyscriptt.librarianpreview.client.LibrarianPreviewClient;
 import io.github.johnnyscriptt.librarianpreview.client.TradeStore;
+import io.github.johnnyscriptt.librarianpreview.client.config.ConfigIo;
+import io.github.johnnyscriptt.librarianpreview.client.ui.SettingsScreen;
 import io.github.johnnyscriptt.librarianpreview.net.OfferSnapshot;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -10,11 +15,14 @@ import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptio
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.block.Blocks;
@@ -63,6 +71,7 @@ public final class LecternTradesGameTest implements FabricClientGameTest {
             if (!hasBook) {
                 throw new AssertionError("expected an enchanted book trade with stored enchantments, got " + offers);
             }
+            highlightThroughSettings(context, offers);
 
             standAt(context, world, base);
             lookAt(context, Vec3.atCenterOf(plain).add(0, 0.55, 0));
@@ -92,6 +101,44 @@ public final class LecternTradesGameTest implements FabricClientGameTest {
             world.getServer().runOnServer(server -> server.getPlayerList().getPlayers().getFirst().level()
                     .setBlockAndUpdate(plain, Blocks.AIR.defaultBlockState()));
             context.waitFor(client -> TradeStore.get(plain) == null, 60);
+        }
+    }
+
+    /**
+     * Opens the settings with the real key, searches for the book's enchantment and clicks it,
+     * the way a player marks the trade they are hunting. Its name must then be highlighted.
+     */
+    private static void highlightThroughSettings(ClientGameTestContext context, List<OfferSnapshot> offers) {
+        context.runOnClient(client -> ConfigIo.get().highlights.clear());
+        Holder<Enchantment> hunted = offers.stream()
+                .map(o -> o.result().getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY))
+                .filter(e -> !e.isEmpty())
+                .findFirst().orElseThrow().keySet().iterator().next();
+        String name = hunted.value().description().getString();
+
+        context.getInput().pressKey(LibrarianPreviewClient.SETTINGS_KEY);
+        context.waitFor(client -> client.gui.screen() instanceof SettingsScreen, 20);
+        context.getInput().typeChars(name);
+        context.waitTicks(3);
+        shot(context, "settings-search");
+
+        double[] cursor = context.computeOnClient(client -> {
+            SettingsScreen screen = (SettingsScreen) client.gui.screen();
+            double scale = client.getWindow().getGuiScale();
+            return new double[] {screen.rowCentreX() * scale, screen.rowCentreY(0) * scale};
+        });
+        context.getInput().setCursorPos(cursor[0], cursor[1]);
+        context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_LEFT);
+        context.waitTicks(3);
+        shot(context, "settings-highlighted");
+        if (!context.computeOnClient(client -> ConfigIo.get().highlights.contains(hunted.getRegisteredName()))) {
+            throw new AssertionError("clicking " + name + " should add it to the highlights, got "
+                    + context.computeOnClient(client -> ConfigIo.get().highlights));
+        }
+        context.getInput().pressKey(InputConstants.KEY_ESCAPE);
+        context.waitFor(client -> client.gui.screen() == null, 20);
+        if (!context.computeOnClient(client -> offers.stream().anyMatch(o -> Highlights.matches(o.result())))) {
+            throw new AssertionError("the hunted book trade should be highlighted on the lectern");
         }
     }
 

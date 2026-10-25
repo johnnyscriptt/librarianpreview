@@ -2,6 +2,7 @@ package io.github.johnnyscriptt.librarianpreview.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.johnnyscriptt.librarianpreview.client.config.ConfigIo;
+import io.github.johnnyscriptt.librarianpreview.client.ui.SettingsScreen;
 import io.github.johnnyscriptt.librarianpreview.core.config.LibrarianPreviewConfig;
 import io.github.johnnyscriptt.librarianpreview.net.LecternTradesPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -16,17 +17,20 @@ import net.minecraft.resources.Identifier;
 
 import static io.github.johnnyscriptt.librarianpreview.LibrarianPreviewMod.MOD_ID;
 
-/** Client entrypoint: receives lectern trades from the server and the show/hide key. */
+/** Client entrypoint: receives lectern trades from the server, the show/hide key and the settings key. */
 public final class LibrarianPreviewClient implements ClientModInitializer {
     private static final KeyMapping.Category CATEGORY =
             KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
 
     public static final KeyMapping TOGGLE_KEY =
             new KeyMapping("key." + MOD_ID + ".toggle", InputConstants.KEY_H, CATEGORY);
+    public static final KeyMapping SETTINGS_KEY =
+            new KeyMapping("key." + MOD_ID + ".settings", InputConstants.KEY_U, CATEGORY);
 
     @Override
     public void onInitializeClient() {
         KeyMappingHelper.registerKeyMapping(TOGGLE_KEY);
+        KeyMappingHelper.registerKeyMapping(SETTINGS_KEY);
         ClientPlayNetworking.registerGlobalReceiver(LecternTradesPayload.TYPE,
                 (payload, context) -> TradeStore.apply(payload));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> TradeStore.clear());
@@ -36,6 +40,9 @@ public final class LibrarianPreviewClient implements ClientModInitializer {
             }
             while (TOGGLE_KEY.consumeClick()) {
                 toggle(mc);
+            }
+            while (SETTINGS_KEY.consumeClick()) {
+                mc.gui.setScreen(new SettingsScreen(null));
             }
         });
     }

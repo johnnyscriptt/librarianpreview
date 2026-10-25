@@ -3,5 +3,15 @@
   "key.librarianpreview.toggle": "Show or hide lectern trades",
   "message.librarianpreview.shown": "Lectern trades shown",
   "message.librarianpreview.hidden": "Lectern trades hidden",
-  "message.librarianpreview.server_missing": "Lectern trades shown, but the server needs Librarian Preview to send them"
+  "message.librarianpreview.server_missing": "Lectern trades shown, but the server needs Librarian Preview to send them",
+  "key.librarianpreview.settings": "Open Librarian Preview settings",
+  "librarianpreview.settings.title": "Librarian Preview",
+  "librarianpreview.settings.sheets": "Trade sheets: %s",
+  "librarianpreview.settings.range": "Range: %s blocks",
+  "librarianpreview.settings.highlight": "Write these trades in green:",
+  "librarianpreview.settings.search": "Search enchantments",
+  "librarianpreview.settings.no_matches": "No enchantment matches that",
+  "librarianpreview.settings.mode.off": "Off",
+  "librarianpreview.settings.mode.any": "Any level",
+  "librarianpreview.settings.mode.max": "Only %s"
 }

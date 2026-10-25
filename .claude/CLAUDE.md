@@ -17,7 +17,7 @@ store and upload conventions. This file only records what is specific to this mo
 - TDD: a failing test is seen before implementation. Pure logic lives in `core/` with no
   Minecraft imports; `src/test` only compiles against `src/main`.
 - Accent colour `#B57CFF`: in-game highlight, caption bar, icon glow.
-- Default keys: H toggles the lectern panels (category "Librarian Preview").
+- Default keys: H toggles the lectern sheets, U opens settings (category "Librarian Preview").
 - Store text: no em dashes. `.ps1` string literals stay ASCII.
 
 ## Domain notes
@@ -35,6 +35,9 @@ store and upload conventions. This file only records what is specific to this mo
 - Sheet writing has one fixed size (`PanelLayout.WIDTH` fills the writing area) and starts
   at the top; more rows than fit scroll by whole rows. `MouseHandlerMixin` claims the wheel
   only when aiming at a lectern whose sheet can scroll, accumulating fractional steps.
+- Highlights: `config.highlights` holds `"ns:id"` (any level) or `"ns:id@max"` (top level
+  only), handled by `core/HighlightRules`; the settings list shows `#minecraft:tradeable`
+  enchantments and a hunted trade's label is drawn green.
 - `LecternTradesGameTest` binds NoAI librarians to lecterns and screenshots the result.
 
 ## Upload

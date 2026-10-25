@@ -1,5 +1,9 @@
 package io.github.johnnyscriptt.librarianpreview.core.config;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+
 /** Client settings, stored as config/librarianpreview.json. */
 public final class LibrarianPreviewConfig {
     public static final int DEFAULT_RANGE = 12;
@@ -9,6 +13,8 @@ public final class LibrarianPreviewConfig {
     public boolean enabled = true;
     /** Lecterns further than this from the player are not drawn. */
     public int rangeBlocks = DEFAULT_RANGE;
+    /** Enchantments written in green when offered; see {@code core.HighlightRules} for the format. */
+    public List<String> highlights = new ArrayList<>();
 
     public void clamp() {
         // 0 means "written by a version without the field": take the default.
@@ -16,5 +22,6 @@ public final class LibrarianPreviewConfig {
             rangeBlocks = DEFAULT_RANGE;
         }
         rangeBlocks = Math.max(MIN_RANGE, Math.min(MAX_RANGE, rangeBlocks));
+        highlights = highlights == null ? new ArrayList<>() : new ArrayList<>(new LinkedHashSet<>(highlights));
     }
 }

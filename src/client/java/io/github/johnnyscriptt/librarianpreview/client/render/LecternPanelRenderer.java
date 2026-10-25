@@ -3,6 +3,7 @@ package io.github.johnnyscriptt.librarianpreview.client.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import io.github.johnnyscriptt.librarianpreview.client.Highlights;
 import io.github.johnnyscriptt.librarianpreview.client.TradeStore;
 import io.github.johnnyscriptt.librarianpreview.client.config.ConfigIo;
 import io.github.johnnyscriptt.librarianpreview.core.PanelLayout;
@@ -57,6 +58,8 @@ public final class LecternPanelRenderer {
 
     private static final int INK = 0xFFFFFFFF;
     private static final int SOLD_OUT = 0xFF8A8278;
+    /** A trade the player is hunting for (settings, highlighted trades). */
+    private static final int HUNTED = 0xFF55FF55;
     /** Paper-coloured wash over the item icons so they look sketched onto the sheet. */
     private static final int WASH = 0x70FFFFFF;
 
@@ -149,9 +152,10 @@ public final class LecternPanelRenderer {
         text(pose, collector, pencil(Component.literal("→")).getVisualOrderText(),
                 PanelLayout.ARROW_X, y + 4, light, colour);
         submitStack(pose, collector, font, offer.result(), PanelLayout.RESULT_X, y, light, colour);
+        int labelColour = Highlights.matches(offer.result()) ? HUNTED : colour;
         int lineY = label.size() == 1 ? y + 4 : y;
         for (FormattedCharSequence line : label) {
-            text(pose, collector, line, PanelLayout.LABEL_X, lineY, light, colour);
+            text(pose, collector, line, PanelLayout.LABEL_X, lineY, light, labelColour);
             lineY += font.lineHeight;
         }
     }
