@@ -1,0 +1,148 @@
+package io.github.johnnyscriptt.librarianpreview.gametest;
+
+import io.github.johnnyscriptt.librarianpreview.client.TradeStore;
+import io.github.johnnyscriptt.librarianpreview.net.OfferSnapshot;
+import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LecternBlock;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+import java.util.List;
+
+/**
+ * A librarian bound to a lectern: the server half must send its trades and the client must
+ * hold them for that lectern, including an enchanted book with its stored enchantment.
+ * Screenshots go to {@code build/run/clientGameTest/screenshots/} for a visual check.
+ */
+public final class LecternTradesGameTest implements FabricClientGameTest {
+    @Override
+    public void runTest(ClientGameTestContext context) {
+        context.getInput().resizeWindow(960, 540);
+        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+            world.getConnection().waitForChunksRender();
+            for (String command : new String[] {"time set noon", "weather clear",
+                    "gamerule advance_time false", "difficulty peaceful"}) {
+                world.getServer().runCommand(command);
+            }
+
+            BlockPos base = world.getServer().computeOnServer(server -> {
+                ServerPlayer player = server.getPlayerList().getPlayers().getFirst();
+                return player.blockPosition();
+            });
+            BlockPos plain = base.offset(0, 0, 2);
+            BlockPos withBook = base.offset(-2, 0, 2);
+            world.getServer().runOnServer(server -> {
+                ServerLevel level = server.getPlayerList().getPlayers().getFirst().level();
+                level.setBlockAndUpdate(plain, Blocks.LECTERN.defaultBlockState()
+                        .setValue(LecternBlock.FACING, Direction.NORTH));
+                level.setBlockAndUpdate(withBook, Blocks.LECTERN.defaultBlockState()
+                        .setValue(LecternBlock.FACING, Direction.NORTH).setValue(LecternBlock.HAS_BOOK, true));
+            });
+            spawnLibrarian(world, plain, base.offset(0, 0, 4));
+            spawnLibrarian(world, withBook, base.offset(-2, 0, 4));
+
+            context.waitFor(client -> TradeStore.get(plain) != null && TradeStore.get(withBook) != null, 200);
+            List<OfferSnapshot> offers = context.computeOnClient(client -> TradeStore.get(plain));
+            boolean hasBook = offers.stream().anyMatch(o ->
+                    o.result().has(DataComponents.STORED_ENCHANTMENTS));
+            if (!hasBook) {
+                throw new AssertionError("expected an enchanted book trade with stored enchantments, got " + offers);
+            }
+
+            standAt(context, world, base);
+            lookAt(context, Vec3.atCenterOf(plain).add(0, 0.55, 0));
+            settle(context, world);
+            shot(context, "lectern-close");
+
+            lookAt(context, Vec3.atCenterOf(base.offset(-1, 0, 2)).add(0, 0.5, 0));
+            settle(context, world);
+            shot(context, "lectern-pair");
+
+            BlockPos side = base.offset(3, 1, 3);
+            world.getServer().runOnServer(server -> server.getPlayerList().getPlayers().getFirst()
+                    .teleportTo(side.getX() + 0.5, base.getY(), side.getZ() + 0.5));
+            context.waitTicks(20);
+            lookAt(context, Vec3.atCenterOf(plain).add(0, 0.5, 0));
+            settle(context, world);
+            shot(context, "lectern-side");
+
+            standAt(context, world, base.offset(0, 0, 1));
+            lookAt(context, Vec3.atCenterOf(plain).add(0, 0.5, 0));
+            settle(context, world);
+            shot(context, "lectern-top");
+
+            // Breaking the lectern drops its panel on the next scan.
+            world.getServer().runOnServer(server -> server.getPlayerList().getPlayers().getFirst().level()
+                    .setBlockAndUpdate(plain, Blocks.AIR.defaultBlockState()));
+            context.waitFor(client -> TradeStore.get(plain) == null, 60);
+        }
+    }
+
+    /**
+     * A still librarian already bound to {@code lectern}, re-rolled until it offers a book, so
+     * the test does not wait on villager AI or luck.
+     */
+    private static void spawnLibrarian(TestSingleplayerContext world, BlockPos lectern, BlockPos at) {
+        world.getServer().runCommand("summon villager " + at.getX() + " " + at.getY() + " " + at.getZ()
+                + " {NoAI:1b,VillagerData:{profession:\"minecraft:librarian\",level:1,type:\"minecraft:plains\"}}");
+        world.getServer().runOnServer(server -> {
+            ServerLevel level = server.getPlayerList().getPlayers().getFirst().level();
+            Villager villager = level.getEntitiesOfClass(Villager.class, new AABB(at).inflate(0.5)).getFirst();
+            villager.getBrain().setMemory(MemoryModuleType.JOB_SITE, GlobalPos.of(level.dimension(), lectern));
+            for (int i = 0; i < 100 && !offersBook(villager); i++) {
+                villager.setOffers(null);
+            }
+        });
+    }
+
+    private static boolean offersBook(Villager villager) {
+        for (MerchantOffer offer : villager.getOffers()) {
+            if (offer.getResult().has(DataComponents.STORED_ENCHANTMENTS)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Aims at a point rather than a block centre (the panel sits on the lectern top). */
+    private static void lookAt(ClientGameTestContext context, Vec3 target) {
+        Vec3 eye = context.computeOnClient(client -> client.player.getEyePosition());
+        Vec3 d = target.subtract(eye);
+        float yaw = (float) Math.toDegrees(Math.atan2(-d.x, d.z));
+        float pitch = (float) Math.toDegrees(-Math.atan2(d.y, Math.sqrt(d.x * d.x + d.z * d.z)));
+        context.getInput().lookAt(yaw, pitch);
+    }
+
+    private static void shot(ClientGameTestContext context, String name) {
+        context.runOnClient(client -> {
+            client.gui.toastManager().clear();
+            client.gui.hud.getChat().clearMessages(false);
+        });
+        context.waitTick();
+        context.takeScreenshot(TestScreenshotOptions.of(name).disableCounterPrefix());
+    }
+
+    private static void standAt(ClientGameTestContext context, TestSingleplayerContext world, BlockPos pos) {
+        world.getServer().runOnServer(server -> server.getPlayerList().getPlayers().getFirst()
+                .teleportTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5));
+        context.waitFor(client -> client.player != null && client.player.blockPosition().equals(pos), 100);
+    }
+
+    private static void settle(ClientGameTestContext context, TestSingleplayerContext world) {
+        world.getConnection().waitForChunksRender();
+        context.waitTicks(30);
+    }
+}

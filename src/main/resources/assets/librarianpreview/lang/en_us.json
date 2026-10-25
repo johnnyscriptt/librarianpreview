@@ -1,3 +1,7 @@
 {
-  "key.category.librarianpreview.main": "Librarian Preview"
+  "key.category.librarianpreview.main": "Librarian Preview",
+  "key.librarianpreview.toggle": "Show or hide lectern trades",
+  "message.librarianpreview.shown": "Lectern trades shown",
+  "message.librarianpreview.hidden": "Lectern trades hidden",
+  "message.librarianpreview.server_missing": "Lectern trades shown, but the server needs Librarian Preview to send them"
 }

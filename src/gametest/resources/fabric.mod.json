@@ -6,8 +6,7 @@
   "environment": "*",
   "entrypoints": {
     "fabric-client-gametest": [
-      "io.github.johnnyscriptt.librarianpreview.gametest.StoreShotsGameTest",
-      "io.github.johnnyscriptt.librarianpreview.gametest.IconRenderGameTest"
+      "io.github.johnnyscriptt.librarianpreview.gametest.LecternTradesGameTest"
     ]
   },
   "depends": {

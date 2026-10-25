@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.johnnyscriptt.librarianpreview.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "LecternRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -23,6 +23,12 @@
       "io.github.johnnyscriptt.librarianpreview.client.LibrarianPreviewClient"
     ]
   },
+  "mixins": [
+    {
+      "config": "librarianpreview.client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=0.19.5",
     "fabric-api": "*",
