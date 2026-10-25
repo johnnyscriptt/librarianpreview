@@ -15,4 +15,4 @@ Upload in numbered order and set **01** as featured.
    Any trade on your hunt list is written in green, so the librarian you want is obvious the moment you walk past.
 
 5. **Long lists scroll with the wheel**
-   A levelled-up librarian has more trades than fit on the sheet. Aim at the lectern and use the mouse wheel to scroll through them; the arrows in the margin show there is more.
+   A levelled-up librarian has more trades than fit on the sheet. Aim at the lectern and use the mouse wheel to scroll through them. The arrows in the margin show there is more.
