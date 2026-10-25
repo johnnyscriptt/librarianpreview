@@ -4,6 +4,7 @@ import io.github.johnnyscriptt.librarianpreview.client.TradeStore;
 import io.github.johnnyscriptt.librarianpreview.net.OfferSnapshot;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 import net.minecraft.core.BlockPos;
@@ -51,8 +52,8 @@ public final class LecternTradesGameTest implements FabricClientGameTest {
                 level.setBlockAndUpdate(withBook, Blocks.LECTERN.defaultBlockState()
                         .setValue(LecternBlock.FACING, Direction.NORTH).setValue(LecternBlock.HAS_BOOK, true));
             });
-            spawnLibrarian(world, plain, base.offset(0, 0, 4));
-            spawnLibrarian(world, withBook, base.offset(-2, 0, 4));
+            spawnLibrarian(world.getServer(), plain, base.offset(0, 0, 4));
+            spawnLibrarian(world.getServer(), withBook, base.offset(-2, 0, 4));
 
             context.waitFor(client -> TradeStore.get(plain) != null && TradeStore.get(withBook) != null, 200);
             List<OfferSnapshot> offers = context.computeOnClient(client -> TradeStore.get(plain));
@@ -95,11 +96,11 @@ public final class LecternTradesGameTest implements FabricClientGameTest {
      * A still librarian already bound to {@code lectern}, re-rolled until it offers a book, so
      * the test does not wait on villager AI or luck.
      */
-    private static void spawnLibrarian(TestSingleplayerContext world, BlockPos lectern, BlockPos at) {
-        world.getServer().runCommand("summon villager " + at.getX() + " " + at.getY() + " " + at.getZ()
+    static void spawnLibrarian(TestServerContext server, BlockPos lectern, BlockPos at) {
+        server.runCommand("summon villager " + at.getX() + " " + at.getY() + " " + at.getZ()
                 + " {NoAI:1b,VillagerData:{profession:\"minecraft:librarian\",level:1,type:\"minecraft:plains\"}}");
-        world.getServer().runOnServer(server -> {
-            ServerLevel level = server.getPlayerList().getPlayers().getFirst().level();
+        server.runOnServer(s -> {
+            ServerLevel level = s.getPlayerList().getPlayers().getFirst().level();
             Villager villager = level.getEntitiesOfClass(Villager.class, new AABB(at).inflate(0.5)).getFirst();
             villager.getBrain().setMemory(MemoryModuleType.JOB_SITE, GlobalPos.of(level.dimension(), lectern));
             for (int i = 0; i < 100 && !offersBook(villager); i++) {
