@@ -17,11 +17,22 @@ store and upload conventions. This file only records what is specific to this mo
 - TDD: a failing test is seen before implementation. Pure logic lives in `core/` with no
   Minecraft imports; `src/test` only compiles against `src/main`.
 - Accent colour `#B57CFF`: in-game highlight, caption bar, icon glow.
-- Default keys: <record them here, and check references/scaffold.md for clashes>.
+- Default keys: H toggles the lectern panels (category "Librarian Preview").
 - Store text: no em dashes. `.ps1` string literals stay ASCII.
 
 ## Domain notes
-- <rules that are easy to get wrong>
+- Client+server: offers only exist on the server. `server/LecternScanner` runs every 20
+  ticks, finds librarians whose `JOB_SITE` memory points at a loaded lectern, calls
+  `getOffers()` (rolls level-1 trades like a first right-click; does not lock the
+  profession) and sends deltas via `LecternTradesPayload`.
+- Prices are base prices (`getBaseCostA`): reputation and Hero of the Village discounts are
+  per player and only applied when the trade screen opens.
+- Panel is drawn from a HEAD inject on `LecternRenderer.submit` (vanilla returns early
+  without a book). Frame: rotate by `-(yRot + 90)`, tilt -22.5 about x through the block
+  centre, then a left-handed GUI frame like sign text.
+- Panel background quads are translucent and depth-sorted: never stack overlapping quads in
+  one batch (they z-fight or sort wrong); arrows go in `collector.order(1)`.
+- `LecternTradesGameTest` binds NoAI librarians to lecterns and screenshots the result.
 
 ## Upload
 - `upload-pack/UPLOAD-GUIDE.md` has every store field. Stores are logged in on the Windows
