@@ -1,106 +1,19 @@
-"""Generates the mod's hand-made pixel art: the aged paper sheet and the pencil font.
+"""Generates the mod's hand-made pixel art: the aged paper sheet the trades are written on.
+The writing itself uses the vanilla font.
 
-The pencil font is derived from vanilla Minecraft's ascii.png (slanted, solid so the text colour shows at full strength),
-so pass the path of ascii.png extracted from your own 26.3 client jar:
-
-    python tools/make_art.py <path to ascii.png>
+    python tools/make_art.py
 
 Output goes straight into src/main/resources/assets/librarianpreview/. Deterministic: the
 same input always gives the same images.
 """
 
-import json
 import random
-import sys
 from pathlib import Path
 
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "src" / "main" / "resources" / "assets" / "librarianpreview"
-
-# Vanilla ascii.png layout (16 rows of 16 chars), copied from include/default.json.
-ASCII_ROWS = [
-    "ÀÁÂÈÊËÍÓÔÕÚßãõğİ",
-    "ıŒœŞşŴŵžȇ\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-    " !\"#$%&'()*+,-./",
-    "0123456789:;<=>?",
-    "@ABCDEFGHIJKLMNO",
-    "PQRSTUVWXYZ[\\]^_",
-    "`abcdefghijklmno",
-    "pqrstuvwxyz{|}~\u0000",
-    "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-    "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-    "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-    "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-    "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-    "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-    "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-    "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-]
-# Only the printable ASCII rows are redrawn; everything else falls back to the vanilla font.
-PENCIL_ROWS = range(2, 8)
-
-ARROW = [
-    "........",
-    "....#...",
-    ".....#..",
-    "#######.",
-    ".....#..",
-    "....#...",
-    "........",
-    "........",
-]
-
-
-def pencil_font(ascii_png: Path) -> None:
-    src = Image.open(ascii_png).convert("RGBA")
-    out = Image.new("RGBA", (128, 8 * len(PENCIL_ROWS)), (0, 0, 0, 0))
-    for out_row, row in enumerate(PENCIL_ROWS):
-        for col in range(16):
-            for y in range(8):
-                # Slant: the top half of each glyph leans one pixel to the right.
-                shift = 1 if y < 4 else 0
-                for x in range(8):
-                    if src.getpixel((col * 8 + x, row * 8 + y))[3] == 0:
-                        continue
-                    nx = x + shift
-                    if nx >= 8:
-                        continue
-                    # Solid white: the text colour tints it.
-                    out.putpixel((col * 8 + nx, out_row * 8 + y), (255, 255, 255, 255))
-    font_dir = ASSETS / "textures" / "font"
-    font_dir.mkdir(parents=True, exist_ok=True)
-    out.save(font_dir / "pencil.png")
-
-    arrow = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
-    for y, line in enumerate(ARROW):
-        for x, c in enumerate(line):
-            if c == "#":
-                arrow.putpixel((x, y), (255, 255, 255, 255))
-    arrow.save(font_dir / "pencil_arrow.png")
-
-    providers = [
-        {"type": "reference", "id": "minecraft:include/space"},
-        {
-            "type": "bitmap",
-            "file": "librarianpreview:font/pencil.png",
-            "ascent": 7,
-            "chars": [ASCII_ROWS[r] for r in PENCIL_ROWS],
-        },
-        {
-            "type": "bitmap",
-            "file": "librarianpreview:font/pencil_arrow.png",
-            "ascent": 7,
-            "chars": ["→"],
-        },
-        {"type": "reference", "id": "minecraft:default"},
-    ]
-    (ASSETS / "font").mkdir(parents=True, exist_ok=True)
-    with open(ASSETS / "font" / "pencil.json", "w", encoding="utf-8", newline="\n") as f:
-        json.dump({"providers": providers}, f, indent=2, ensure_ascii=True)
-        f.write("\n")
-
 
 PAPER_W, PAPER_H = 30, 24
 
@@ -143,8 +56,5 @@ def paper() -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    pencil_font(Path(sys.argv[1]))
     paper()
-    print("wrote", ASSETS / "textures" / "paper.png", "and the pencil font")
+    print("wrote", ASSETS / "textures" / "paper.png")

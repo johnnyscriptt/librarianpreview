@@ -9,12 +9,12 @@ public final class PanelLayout {
     public static final int PADDING = 4;
     public static final int ROW_HEIGHT = 18;
     /** Labels wrap at this width, onto at most two lines. */
-    public static final int LINE_WIDTH = 72;
+    public static final int LINE_WIDTH = 62;
     public static final int COST_A_X = PADDING;
-    public static final int COST_B_X = COST_A_X + 20;
-    public static final int ARROW_X = COST_B_X + 20;
-    public static final int RESULT_X = ARROW_X + 12;
-    public static final int LABEL_X = RESULT_X + 20;
+    public static final int COST_B_X = COST_A_X + 17;
+    public static final int ARROW_X = COST_B_X + 17;
+    public static final int RESULT_X = ARROW_X + 10;
+    public static final int LABEL_X = RESULT_X + 18;
     public static final int WIDTH = LABEL_X + LINE_WIDTH + PADDING;
 
     private PanelLayout() {

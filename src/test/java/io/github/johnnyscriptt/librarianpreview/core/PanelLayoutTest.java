@@ -14,6 +14,20 @@ class PanelLayoutTest {
     }
 
     @Test
+    void rowIsCompactSoTheWritingDrawsLarge() {
+        // The sheet is a fixed size, so a narrower row is drawn at a larger scale.
+        assertTrue(PanelLayout.WIDTH <= 132, "row width " + PanelLayout.WIDTH);
+    }
+
+    @Test
+    void iconsAndArrowDoNotOverlap() {
+        assertTrue(PanelLayout.COST_B_X - PanelLayout.COST_A_X >= 16);
+        assertTrue(PanelLayout.ARROW_X - PanelLayout.COST_B_X >= 16);
+        assertTrue(PanelLayout.RESULT_X - PanelLayout.ARROW_X >= 9);
+        assertTrue(PanelLayout.LABEL_X - PanelLayout.RESULT_X >= 17);
+    }
+
+    @Test
     void rowYStartsBelowTopPadding() {
         assertEquals(PanelLayout.PADDING, PanelLayout.rowY(0));
         assertEquals(PanelLayout.PADDING + 2 * PanelLayout.ROW_HEIGHT, PanelLayout.rowY(2));

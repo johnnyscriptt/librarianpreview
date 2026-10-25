@@ -18,7 +18,6 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
@@ -31,14 +30,12 @@ import java.util.List;
 import static io.github.johnnyscriptt.librarianpreview.LibrarianPreviewMod.MOD_ID;
 
 /**
- * Draws a librarian's trades in white handwriting on a sheet of old dark paper lying on its lectern,
+ * Draws a librarian's trades in white writing on a sheet of old dark paper lying on its lectern,
  * laid out like the rows of the vanilla trade list. Called from the lectern block-entity
  * renderer, so the pose is already at the block's corner.
  */
 public final class LecternPanelRenderer {
     private static final Identifier PAPER = Identifier.fromNamespaceAndPath(MOD_ID, "textures/paper.png");
-    private static final FontDescription PENCIL =
-            new FontDescription.Resource(Identifier.fromNamespaceAndPath(MOD_ID, "pencil"));
 
     /** Lectern top plate tilt from the block model (rotation -22.5 about x, origin 8,8,8). */
     private static final float PLATE_TILT = -22.5f;
@@ -149,7 +146,7 @@ public final class LecternPanelRenderer {
         if (!offer.costB().isEmpty()) {
             submitStack(pose, collector, font, offer.costB(), PanelLayout.COST_B_X, y, light, colour);
         }
-        text(pose, collector, pencil(Component.literal("→")).getVisualOrderText(),
+        text(pose, collector, Component.literal("→").getVisualOrderText(),
                 PanelLayout.ARROW_X, y + 4, light, colour);
         submitStack(pose, collector, font, offer.result(), PanelLayout.RESULT_X, y, light, colour);
         int labelColour = Highlights.matches(offer.result()) ? HUNTED : colour;
@@ -160,9 +157,9 @@ public final class LecternPanelRenderer {
         }
     }
 
-    /** A label in pencil, wrapped to at most two lines so long enchant names stay large. */
+    /** A label wrapped to at most two lines so long enchant names stay large. */
     private static List<FormattedCharSequence> wrapLabel(Font font, OfferSnapshot offer) {
-        MutableComponent label = pencil(OfferLabels.label(offer.result()));
+        MutableComponent label = OfferLabels.label(offer.result()).copy();
         if (offer.outOfStock()) {
             label.withStyle(s -> s.withStrikethrough(true));
         }
@@ -170,13 +167,10 @@ public final class LecternPanelRenderer {
         return split.size() > 2 ? split.subList(0, 2) : split;
     }
 
-    private static MutableComponent pencil(Component text) {
-        return Component.empty().append(text).withStyle(s -> s.withFont(PENCIL));
-    }
-
+    /** Vanilla font with its drop shadow, so the writing stays crisp on the dark paper. */
     private static void text(PoseStack pose, SubmitNodeCollector collector, FormattedCharSequence text,
                              float x, float y, int light, int colour) {
-        collector.submitText(pose, x, y, text, false, Font.DisplayMode.POLYGON_OFFSET, light, colour, 0, 0);
+        collector.submitText(pose, x, y, text, true, Font.DisplayMode.POLYGON_OFFSET, light, colour, 0, 0);
     }
 
     private static void submitStack(PoseStack pose, SubmitNodeCollector collector, Font font, ItemStack stack,
@@ -202,7 +196,7 @@ public final class LecternPanelRenderer {
 
         if (stack.getCount() > 1) {
             String count = Integer.toString(stack.getCount());
-            FormattedCharSequence seq = pencil(Component.literal(count)).getVisualOrderText();
+            FormattedCharSequence seq = Component.literal(count).getVisualOrderText();
             pose.pushPose();
             pose.translate(0f, 0f, 0.8f);
             text(pose, collector, seq, x + 17 - font.width(seq), y + 9, light, colour);
