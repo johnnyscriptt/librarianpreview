@@ -9,13 +9,15 @@ The full player-facing description is in
 
 | Key | Does |
 | --- | --- |
-| | |
+| H | Show or hide the trade sheets |
+| U | Open the settings (range, hunted enchantments) |
 
 All rebindable in Options, Controls, under **Librarian Preview**.
 
 ## Multiplayer
 
-<Client only, or: one jar, both sides, and what works on a server without the mod.>
+Offers only exist on the server, so the server half reads each claimed librarian's trades and
+sends them to nearby players. One jar, both sides. On a server without the mod nothing is shown.
 
 ## Building
 

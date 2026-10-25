@@ -5,13 +5,49 @@
   "enlarge": 2,
   "images": [
     {
-      "name": "01-the-money-shot.png",
-      "source": "store-01-main.png",
-      "head": "Four to seven words, benefit first",
-      "sub": "One plain sentence that explains the headline",
-      "store_description": "The store's longer description for this image",
+      "name": "01-see-the-book-before-you-trade.png",
+      "source": "store-01-efficiency.png",
+      "head": "See the book before you trade",
+      "sub": "Every claimed lectern shows its librarian's offers, right on the stand.",
+      "store_description": "Every librarian's trades are written on a sheet lying on its lectern. This one sells Efficiency V, and it is on the hunt list, so it is written in green.",
       "position": "top-left",
-      "max_panel": 900
+      "max_panel": 760
+    },
+    {
+      "name": "02-a-whole-trading-hall-at-a-glance.png",
+      "source": "store-02-hall.png",
+      "head": "A whole trading hall at a glance",
+      "sub": "Walk the row and read every deal without opening a trade screen.",
+      "store_description": "Walk down your trading hall and read every librarian's offers from the walkway. You never have to click a villager or open a trade screen.",
+      "position": "top-left",
+      "max_panel": 820
+    },
+    {
+      "name": "03-pick-the-books-you-are-hunting.png",
+      "source": "store-03-settings.png",
+      "head": "Pick the books you are hunting",
+      "sub": "Press U, search an enchantment and click it.",
+      "store_description": "Press U to open the settings. Search for an enchantment and click it to hunt it at any level, or click again for the top level only. You can also turn the sheets off or change how far away they show.",
+      "position": [1450, 300],
+      "max_panel": 440
+    },
+    {
+      "name": "04-hunted-trades-are-written-in-green.png",
+      "source": "store-04-row.png",
+      "head": "Hunted trades are written in green",
+      "sub": "Sweeping Edge was on the list, so it stands out on the sheet.",
+      "store_description": "Any trade on your hunt list is written in green, so the librarian you want is obvious the moment you walk past.",
+      "position": "top-left",
+      "max_panel": 760
+    },
+    {
+      "name": "05-long-lists-scroll-with-the-wheel.png",
+      "source": "store-05-scroll.png",
+      "head": "Long lists scroll with the wheel",
+      "sub": "Aim at the lectern and scroll. Your hotbar stays put.",
+      "store_description": "A levelled-up librarian has more trades than fit on the sheet. Aim at the lectern and use the mouse wheel to scroll through them; the arrows in the margin show there is more.",
+      "position": "top-left",
+      "max_panel": 760
     }
   ]
 }

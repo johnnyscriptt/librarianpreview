@@ -1,0 +1,56 @@
+<h2>Librarian Preview</h2>
+<p>You want Mending. You break the lectern, put it back, right-click the librarian, read the trade list, close it, break the lectern again. Forty rounds later your wrist hurts and the villager is still selling Bane of Arthropods.</p>
+<p>Librarian Preview writes every librarian's trades on a sheet of paper lying on its lectern, so you can read them just by looking.</p>
+<h2>Read the trades</h2>
+<ul>
+<li><strong>A sheet on every claimed lectern.</strong> It lists the librarian's offers the way the trade screen does: the cost, an arrow, what you get. Enchanted books show the enchantment and its level ("Efficiency V"), not just "Enchanted Book".</li>
+<li><strong>Reroll without clicking.</strong> Break the lectern and put it back. The new trades are on the sheet within about a second, and looking never locks the villager in.</li>
+<li><strong>A whole trading hall at once.</strong> Every claimed lectern within 12 blocks shows its sheet (8 to 32 in the settings), so you can walk the row and read them all.</li>
+<li><strong>Long lists scroll.</strong> A levelled-up librarian can have more trades than fit. Aim at the lectern and use the mouse wheel; small arrows in the margin show there is more.</li>
+<li><strong>Out of stock</strong> trades are greyed out and struck through.</li>
+<li><strong>A lectern with a book on it</strong> shows the book as usual, no sheet.</li>
+</ul>
+<h2>Hunt for a book</h2>
+<p>Press <strong>U</strong>, type part of an enchantment's name and click it. Click once to hunt any level, again for the top level only (so "Efficiency V" but not "Efficiency III"), and once more to drop it. Any trade on your list is written in <strong>green</strong>, which makes the librarian you want easy to spot from the walkway.</p>
+<h2>Keys</h2>
+<table>
+<tr><th>Key</th><th>Does</th></tr>
+<tr><td>H</td><td>Show or hide the trade sheets</td></tr>
+<tr><td>U</td><td>Open the settings</td></tr>
+</table>
+<p>All rebindable in Options, Controls, under <strong>Librarian Preview</strong>.</p>
+<h2>Multiplayer</h2>
+<p>Your client never learns a villager's trades until you open its trade screen, so the server reads them and sends them over. One jar, both sides.</p>
+<table>
+<tr><th>Where</th><th>What works</th></tr>
+<tr><td>Singleplayer</td><td>Everything</td></tr>
+<tr><td>LAN world you host</td><td>Everything</td></tr>
+<tr><td>Server with the mod</td><td>Everything</td></tr>
+<tr><td>Server without the mod</td><td>Nothing to show; pressing <strong>H</strong> tells you the server needs the mod</td></tr>
+</table>
+<p>On the server it checks the librarians near each player once a second, only looks at loaded chunks (it never loads one), and only sends a lectern's trades when they change.</p>
+<p>Prices are the librarian's base prices. Discounts from curing a zombie villager or Hero of the Village are worked out per player when you open the trade screen, so you may pay less than the sheet says.</p>
+<h2>Settings</h2>
+<p>Press <strong>U</strong>. Saved to <code>config/librarianpreview.json</code>.</p>
+<table>
+<tr><th>Setting</th><th>Default</th></tr>
+<tr><td>Trade sheets</td><td>On</td></tr>
+<tr><td>Range</td><td>12 blocks</td></tr>
+<tr><td>Trades written in green</td><td>None</td></tr>
+</table>
+<h2>Plays well with</h2>
+<p>Tested in a real launcher alongside Sodium, Iris, Litematica, MiniHUD and the Faithful 32x resource pack.</p>
+<h2>Requires</h2>
+<ul>
+<li>Minecraft <strong>26.3</strong></li>
+<li>Fabric Loader <strong>0.19.5</strong> or newer</li>
+<li><strong>Fabric API</strong></li>
+<li><strong>Java 25</strong></li>
+</ul>
+<h2>Not there yet</h2>
+<ul>
+<li>Librarians only. Other professions keep their trades to themselves for now.</li>
+<li>Prices don't include your personal discounts (see Multiplayer).</li>
+</ul>
+<h2>License</h2>
+<p>MIT.</p>

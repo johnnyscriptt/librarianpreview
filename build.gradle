@@ -73,3 +73,8 @@ java {
 jar {
     from("LICENSE")
 }
+
+// The walk-past video takes a few minutes of frames: gradlew runClientGameTest -Pvideo=true
+tasks.matching { it.name == "runClientGameTest" }.configureEach {
+    systemProperty "librarianpreview.video", project.findProperty("video") ?: "false"
+}

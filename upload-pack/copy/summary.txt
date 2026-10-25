@@ -1,0 +1,11 @@
+PRIMARY (use this one), 187 characters
+Reads each librarian's trades and writes them on its lectern, so you can reroll for Mending without opening a single trade screen. Mark the books you're hunting and they show up in green.
+
+ALT 1, leads with the problem, 190 characters
+Stop breaking a lectern and right-clicking forty times. Every librarian's offers are written on the lectern it claims, enchant names and levels included, and rerolls show up within a second.
+
+ALT 2, leads with the mechanic, 168 characters
+A sheet of paper on every claimed lectern lists that librarian's trades. Hunted books are written in green, long lists scroll, and it works across a whole trading hall.
+
+
+Modrinth caps the summary at 256 characters; CurseForge at 255. All three fit both.
