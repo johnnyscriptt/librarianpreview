@@ -1,0 +1,33 @@
+{
+  "providers": [
+    {
+      "type": "reference",
+      "id": "minecraft:include/space"
+    },
+    {
+      "type": "bitmap",
+      "file": "librarianpreview:font/pencil.png",
+      "ascent": 7,
+      "chars": [
+        " !\"#$%&'()*+,-./",
+        "0123456789:;<=>?",
+        "@ABCDEFGHIJKLMNO",
+        "PQRSTUVWXYZ[\\]^_",
+        "`abcdefghijklmno",
+        "pqrstuvwxyz{|}~\u0000"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "librarianpreview:font/pencil_arrow.png",
+      "ascent": 7,
+      "chars": [
+        "\u2192"
+      ]
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:default"
+    }
+  ]
+}

@@ -13,45 +13,50 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.blockentity.state.LecternRenderState;
 import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 
+import static io.github.johnnyscriptt.librarianpreview.LibrarianPreviewMod.MOD_ID;
+
 /**
- * Draws a librarian's trades flat on the slanted top of its lectern, laid out like the rows
- * of the vanilla trade list. Called from the lectern block-entity renderer, so the pose is
- * already at the block's corner.
+ * Draws a librarian's trades as pencil notes on a sheet of old paper lying on its lectern,
+ * laid out like the rows of the vanilla trade list. Called from the lectern block-entity
+ * renderer, so the pose is already at the block's corner.
  */
 public final class LecternPanelRenderer {
+    private static final Identifier PAPER = Identifier.fromNamespaceAndPath(MOD_ID, "textures/paper.png");
+    private static final FontDescription PENCIL =
+            new FontDescription.Resource(Identifier.fromNamespaceAndPath(MOD_ID, "pencil"));
+
     /** Lectern top plate tilt from the block model (rotation -22.5 about x, origin 8,8,8). */
     private static final float PLATE_TILT = -22.5f;
     /** Centre of the plate along z in model space: the plate runs from z 3/16 to 16/16. */
     private static final float PLATE_CENTRE_Z = (3f / 16f + 1f) / 2f;
-    private static final float TARGET_WIDTH = 1.3f;
-    private static final float TARGET_HEIGHT = 0.8f;
-    private static final float SURFACE_GAP = 0.004f;
-    /** The book model sits in the middle of the plate; lift the panel clear of it. */
-    private static final float BOOK_LIFT = 0.3f;
-    private static final int MAX_LABEL_WIDTH = 120;
+    /** Just enough to beat z-fighting with the plate; the sheet must look like it lies on it. */
+    private static final float SURFACE_GAP = 0.0015f;
+    /** Sheet size in blocks, the texture's 30x24 aspect. */
+    private static final float PAPER_W = 0.94f;
+    private static final float PAPER_H = 0.752f;
+    /** Writing area inside the yellowed rim (2 of 30 and 24 texture pixels per side). */
+    private static final float WRITE_W = PAPER_W * 26f / 30f;
+    private static final float WRITE_H = PAPER_H * 20f / 24f;
+    private static final int LINE_WIDTH = 72;
 
-    // Vanilla container palette.
-    private static final int PANEL = 0xFFC6C6C6;
-    private static final int LIGHT_EDGE = 0xFFFFFFFF;
-    private static final int DARK_EDGE = 0xFF555555;
-    private static final int OUTLINE = 0xFF000000;
-    private static final int TEXT = 0xFF404040;
-    private static final int SOLD_OUT_TEXT = 0xFF8B8B8B;
-    private static final int ARROW = 0xFF555555;
-    private static final int SOLD_OUT_CROSS = 0xFFCC2222;
+    private static final int GRAPHITE = 0xFF3A3833;
+    private static final int SOLD_OUT = 0xFF8C867A;
+    /** Paper-coloured wash over the item icons so they look sketched onto the sheet. */
+    private static final int WASH = 0x70FFFFFF;
 
     private LecternPanelRenderer() {
     }
@@ -59,7 +64,8 @@ public final class LecternPanelRenderer {
     public static void submit(LecternRenderState state, PoseStack pose, SubmitNodeCollector collector,
                               CameraRenderState camera) {
         LibrarianPreviewConfig config = ConfigIo.get();
-        if (!config.enabled || state.blockPos == null) {
+        // An open book would cover the sheet, and hunting lecterns are normally empty.
+        if (!config.enabled || state.blockPos == null || state.hasBook) {
             return;
         }
         List<OfferSnapshot> offers = TradeStore.get(state.blockPos);
@@ -71,16 +77,18 @@ public final class LecternPanelRenderer {
             return;
         }
 
-        Minecraft mc = Minecraft.getInstance();
-        Font font = mc.font;
-        Component[] labels = new Component[offers.size()];
-        int[] widths = new int[offers.size()];
-        for (int i = 0; i < offers.size(); i++) {
-            labels[i] = OfferLabels.label(offers.get(i).result());
-            widths[i] = Math.min(MAX_LABEL_WIDTH, font.width(labels[i]));
+        Font font = Minecraft.getInstance().font;
+        int rows = Math.min(PanelLayout.MAX_ROWS, offers.size());
+        List<FormattedCharSequence>[] lines = wrapLabels(font, offers, rows);
+        int[] widths = new int[rows];
+        for (int i = 0; i < rows; i++) {
+            for (FormattedCharSequence line : lines[i]) {
+                widths[i] = Math.max(widths[i], font.width(line));
+            }
         }
         PanelLayout layout = PanelLayout.of(widths);
-        float scale = layout.scaleToFit(TARGET_WIDTH, TARGET_HEIGHT);
+        float scale = layout.scaleToFit(WRITE_W, WRITE_H);
+        int light = state.lightCoords;
 
         pose.pushPose();
         // Block model rotation for this facing (the model faces north at 0).
@@ -88,40 +96,84 @@ public final class LecternPanelRenderer {
         pose.rotateDegrees(Axis.YP, -(state.yRot + 90f));
         // Onto the tilted plate.
         pose.rotateDegrees(Axis.XP, PLATE_TILT);
-        pose.translate(0f, 0.5f + SURFACE_GAP + (state.hasBook ? BOOK_LIFT : 0f), PLATE_CENTRE_Z - 0.5f);
-        // Panel frame: x to the reader's right, y down the slope towards the reader, z up out
+        pose.translate(0f, 0.5f + SURFACE_GAP, PLATE_CENTRE_Z - 0.5f);
+        // Sheet frame: x to the reader's right, y down the slope towards the reader, z up out
         // of the plate (the same left-handed GUI frame sign text uses).
         pose.rotateDegrees(Axis.XP, -90f);
-        pose.scale(-scale, scale, scale);
-        pose.translate(-layout.width() / 2f, -layout.height() / 2f, 0f);
+        pose.scale(-1f, 1f, 1f);
+        // Dropped by hand, not squared up: a small fixed twist per lectern.
+        pose.rotateDegrees(Axis.ZP, twist(state));
 
-        int light = LightCoordsUtil.FULL_BRIGHT;
-        submitBackground(pose, collector, layout, offers);
-        for (int row = 0; row < layout.rows(); row++) {
-            OfferSnapshot offer = offers.get(row);
-            int y = layout.rowY(row) + 1;
-            submitStack(pose, collector, font, offer.costA(), PanelLayout.COST_A_X, y, light);
-            if (!offer.costB().isEmpty()) {
-                submitStack(pose, collector, font, offer.costB(), PanelLayout.COST_B_X, y, light);
-            }
-            submitStack(pose, collector, font, offer.result(), PanelLayout.RESULT_X, y, light);
-            FormattedCharSequence text = clip(font, labels[row]);
-            collector.submitText(pose, PanelLayout.LABEL_X, y + 4, text, false, Font.DisplayMode.POLYGON_OFFSET,
-                    light, offer.outOfStock() ? SOLD_OUT_TEXT : TEXT, 0, 0);
+        // The text pipeline: lit by the lightmap only, like a sign, so the sheet keeps its
+        // colour from every angle (entity shading greyed it out at a distance).
+        collector.submitCustomGeometry(pose, RenderTypes.text(PAPER), (p, vc) ->
+                quad(p, vc, -PAPER_W / 2f, -PAPER_H / 2f, PAPER_W / 2f, PAPER_H / 2f, 0f,
+                        0f, 0f, 1f, 1f, 0xFFFFFFFF, light));
+
+        pose.scale(scale, scale, scale);
+        pose.translate(-layout.width() / 2f, -layout.height() / 2f, 0f);
+        Sheet sheet = new Sheet(layout, scale);
+        for (int row = 0; row < rows; row++) {
+            submitRow(pose, collector, font, sheet, offers.get(row), lines[row], layout.rowY(row) + 1, light);
         }
         pose.popPose();
     }
 
-    private static FormattedCharSequence clip(Font font, Component label) {
-        if (font.width(label) <= MAX_LABEL_WIDTH) {
-            return label.getVisualOrderText();
+    /** Maps writing-area pixels to paper texture coordinates, for washes that match the sheet. */
+    private record Sheet(PanelLayout layout, float scale) {
+        float u(float x) {
+            return ((x - layout.width() / 2f) * scale + PAPER_W / 2f) / PAPER_W;
         }
-        String cut = font.plainSubstrByWidth(label.getString(), MAX_LABEL_WIDTH - font.width("..."));
-        return Component.literal(cut + "...").withStyle(label.getStyle()).getVisualOrderText();
+
+        float v(float y) {
+            return ((y - layout.height() / 2f) * scale + PAPER_H / 2f) / PAPER_H;
+        }
     }
 
-    private static void submitStack(PoseStack pose, SubmitNodeCollector collector, Font font, ItemStack stack,
-                                    int x, int y, int light) {
+    private static void submitRow(PoseStack pose, SubmitNodeCollector collector, Font font, Sheet sheet,
+                                  OfferSnapshot offer, List<FormattedCharSequence> label, int y, int light) {
+        int colour = offer.outOfStock() ? SOLD_OUT : GRAPHITE;
+        submitStack(pose, collector, font, sheet, offer.costA(), PanelLayout.COST_A_X, y, light, colour);
+        if (!offer.costB().isEmpty()) {
+            submitStack(pose, collector, font, sheet, offer.costB(), PanelLayout.COST_B_X, y, light, colour);
+        }
+        text(pose, collector, pencil(Component.literal("→")).getVisualOrderText(),
+                PanelLayout.ARROW_X, y + 4, light, colour);
+        submitStack(pose, collector, font, sheet, offer.result(), PanelLayout.RESULT_X, y, light, colour);
+        int lineY = label.size() == 1 ? y + 4 : y;
+        for (FormattedCharSequence line : label) {
+            text(pose, collector, line, PanelLayout.LABEL_X, lineY, light, colour);
+            lineY += font.lineHeight;
+        }
+    }
+
+    /** Each label in pencil, wrapped to at most two lines so long enchant names stay large. */
+    @SuppressWarnings("unchecked")
+    private static List<FormattedCharSequence>[] wrapLabels(Font font, List<OfferSnapshot> offers, int rows) {
+        List<FormattedCharSequence>[] lines = new List[rows];
+        for (int i = 0; i < rows; i++) {
+            OfferSnapshot offer = offers.get(i);
+            MutableComponent label = pencil(OfferLabels.label(offer.result()));
+            if (offer.outOfStock()) {
+                label.withStyle(s -> s.withStrikethrough(true));
+            }
+            List<FormattedCharSequence> split = font.split(label, LINE_WIDTH);
+            lines[i] = split.size() > 2 ? split.subList(0, 2) : split;
+        }
+        return lines;
+    }
+
+    private static MutableComponent pencil(Component text) {
+        return Component.empty().append(text).withStyle(s -> s.withFont(PENCIL));
+    }
+
+    private static void text(PoseStack pose, SubmitNodeCollector collector, FormattedCharSequence text,
+                             float x, float y, int light, int colour) {
+        collector.submitText(pose, x, y, text, false, Font.DisplayMode.POLYGON_OFFSET, light, colour, 0, 0);
+    }
+
+    private static void submitStack(PoseStack pose, SubmitNodeCollector collector, Font font, Sheet sheet,
+                                    ItemStack stack, int x, int y, int light, int colour) {
         if (stack.isEmpty()) {
             return;
         }
@@ -129,74 +181,52 @@ public final class LecternPanelRenderer {
         ItemStackRenderState item = new ItemStackRenderState();
         mc.getItemModelResolver().updateForTopItem(item, stack, ItemDisplayContext.GUI, mc.level, null, 0);
         pose.pushPose();
-        pose.translate(x + 8f, y + 8f, 0.6f);
-        // GUI item models are y-up; flip back to a right-handed frame and flatten the depth.
-        pose.scale(16f, -16f, 1f);
+        pose.translate(x + 8f, y + 8f, 0.25f);
+        // GUI item models are y-up; flip back to a right-handed frame and press them flat.
+        pose.scale(16f, -16f, 0.4f);
         item.submit(pose, collector, light, OverlayTexture.NO_OVERLAY, 0);
         pose.popPose();
 
+        // Fade the icon into the paper: a see-through copy of the exact patch of sheet under it.
+        // The sheet is twisted as a whole, so the patch still lines up.
+        collector.order(1).submitCustomGeometry(pose, RenderTypes.text(PAPER), (p, vc) ->
+                quad(p, vc, x, y, x + 16, y + 16, 0.6f,
+                        sheet.u(x), sheet.v(y), sheet.u(x + 16), sheet.v(y + 16), WASH, light));
+
         if (stack.getCount() > 1) {
             String count = Integer.toString(stack.getCount());
+            FormattedCharSequence seq = pencil(Component.literal(count)).getVisualOrderText();
             pose.pushPose();
-            pose.translate(0f, 0f, 1.4f);
-            collector.submitText(pose, x + 17 - font.width(count), y + 9, Component.literal(count).getVisualOrderText(),
-                    true, Font.DisplayMode.POLYGON_OFFSET, light, 0xFFFFFFFF, 0, 0);
+            pose.translate(0f, 0f, 0.8f);
+            text(pose, collector, seq, x + 17 - font.width(seq), y + 9, light, colour);
             pose.popPose();
         }
     }
 
-    private static void submitBackground(PoseStack pose, SubmitNodeCollector collector, PanelLayout layout,
-                                         List<OfferSnapshot> offers) {
-        RenderType type = ShaderCompat.shaderPackInUse() ? RenderTypes.lightning() : RenderTypes.debugQuads();
-        int w = layout.width();
-        int h = layout.height();
-        collector.submitCustomGeometry(pose, type, (p, vc) -> {
-            // Vanilla bevel as strips that never overlap, so nothing z-fights on the plate.
-            rect(p, vc, -1, -1, w + 1, 0, OUTLINE, 0f);
-            rect(p, vc, -1, h, w + 1, h + 1, OUTLINE, 0f);
-            rect(p, vc, -1, 0, 0, h, OUTLINE, 0f);
-            rect(p, vc, w, 0, w + 1, h, OUTLINE, 0f);
-            rect(p, vc, 0, 0, w - 1, 1, LIGHT_EDGE, 0f);
-            rect(p, vc, 0, 1, 1, h - 1, LIGHT_EDGE, 0f);
-            rect(p, vc, 1, h - 1, w, h, DARK_EDGE, 0f);
-            rect(p, vc, w - 1, 1, w, h - 1, DARK_EDGE, 0f);
-            rect(p, vc, w - 1, 0, w, 1, PANEL, 0f);
-            rect(p, vc, 0, h - 1, 1, h, PANEL, 0f);
-            rect(p, vc, 1, 1, w - 1, h - 1, PANEL, 0f);
-        });
-        // Translucent quads are depth-sorted, so arrows in the same batch can sort under the
-        // panel; a later order draws them after it.
-        collector.order(1).submitCustomGeometry(pose, type, (p, vc) -> {
-            for (int row = 0; row < layout.rows(); row++) {
-                int ay = layout.rowY(row) + 1 + 8;
-                int ax = PanelLayout.ARROW_X;
-                // A small pixel arrow like the trade screen's.
-                rect(p, vc, ax, ay - 1, ax + 6, ay + 1, ARROW, 0.3f);
-                rect(p, vc, ax + 6, ay - 3, ax + 7, ay + 3, ARROW, 0.3f);
-                rect(p, vc, ax + 7, ay - 2, ax + 8, ay + 2, ARROW, 0.3f);
-                rect(p, vc, ax + 8, ay - 1, ax + 9, ay + 1, ARROW, 0.3f);
-                if (offers.get(row).outOfStock()) {
-                    rect(p, vc, ax - 1, ay - 4, ax + 10, ay - 3, SOLD_OUT_CROSS, 0.3f);
-                    rect(p, vc, ax - 1, ay + 3, ax + 10, ay + 4, SOLD_OUT_CROSS, 0.3f);
-                }
-            }
-        });
+    private static float twist(LecternRenderState state) {
+        return (Math.floorMod(state.blockPos.hashCode(), 7) - 3) * 0.8f;
     }
 
-    /** One axis-aligned rectangle at height z above the plate, emitted with both windings. */
-    private static void rect(PoseStack.Pose pose, VertexConsumer vc, float x0, float y0, float x1, float y1,
-                             int argb, float z) {
-        int a = argb >>> 24;
-        int r = (argb >> 16) & 0xFF;
-        int g = (argb >> 8) & 0xFF;
-        int b = argb & 0xFF;
-        vc.addVertex(pose, x0, y0, z).setColor(r, g, b, a);
-        vc.addVertex(pose, x0, y1, z).setColor(r, g, b, a);
-        vc.addVertex(pose, x1, y1, z).setColor(r, g, b, a);
-        vc.addVertex(pose, x1, y0, z).setColor(r, g, b, a);
-        vc.addVertex(pose, x1, y0, z).setColor(r, g, b, a);
-        vc.addVertex(pose, x1, y1, z).setColor(r, g, b, a);
-        vc.addVertex(pose, x0, y1, z).setColor(r, g, b, a);
-        vc.addVertex(pose, x0, y0, z).setColor(r, g, b, a);
+    /** A textured rectangle at height z, emitted with both windings. */
+    private static void quad(PoseStack.Pose pose, VertexConsumer vc, float x0, float y0, float x1, float y1,
+                             float z, float u0, float v0, float u1, float v1, int argb, int light) {
+        vertex(pose, vc, x0, y0, z, u0, v0, argb, light);
+        vertex(pose, vc, x0, y1, z, u0, v1, argb, light);
+        vertex(pose, vc, x1, y1, z, u1, v1, argb, light);
+        vertex(pose, vc, x1, y0, z, u1, v0, argb, light);
+        vertex(pose, vc, x1, y0, z, u1, v0, argb, light);
+        vertex(pose, vc, x1, y1, z, u1, v1, argb, light);
+        vertex(pose, vc, x0, y1, z, u0, v1, argb, light);
+        vertex(pose, vc, x0, y0, z, u0, v0, argb, light);
+    }
+
+    private static void vertex(PoseStack.Pose pose, VertexConsumer vc, float x, float y, float z,
+                               float u, float v, int argb, int light) {
+        vc.addVertex(pose, x, y, z)
+                .setColor(argb)
+                .setUv(u, v)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(light)
+                .setNormal(pose, 0f, 0f, 1f);
     }
 }
