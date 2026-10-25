@@ -51,7 +51,9 @@ public final class LecternPanelRenderer {
     /** Writing area inside the yellowed rim (2 of 30 and 24 texture pixels per side). */
     private static final float WRITE_W = PAPER_W * 26f / 30f;
     private static final float WRITE_H = PAPER_H * 20f / 24f;
-    private static final int LINE_WIDTH = 72;
+    /** One text size on every lectern: a full-width row fills the writing area's width. */
+    private static final float SCALE = WRITE_W / PanelLayout.WIDTH;
+    private static final int VISIBLE_ROWS = PanelLayout.visibleRows(WRITE_H / SCALE);
 
     private static final int INK = 0xFFFFFFFF;
     private static final int SOLD_OUT = 0xFF8A8278;
@@ -59,6 +61,11 @@ public final class LecternPanelRenderer {
     private static final int WASH = 0x70FFFFFF;
 
     private LecternPanelRenderer() {
+    }
+
+    /** Trade rows that fit on a sheet before it scrolls. */
+    public static int visibleRows() {
+        return VISIBLE_ROWS;
     }
 
     public static void submit(LecternRenderState state, PoseStack pose, SubmitNodeCollector collector,
@@ -78,16 +85,9 @@ public final class LecternPanelRenderer {
         }
 
         Font font = Minecraft.getInstance().font;
-        int rows = Math.min(PanelLayout.MAX_ROWS, offers.size());
-        List<FormattedCharSequence>[] lines = wrapLabels(font, offers, rows);
-        int[] widths = new int[rows];
-        for (int i = 0; i < rows; i++) {
-            for (FormattedCharSequence line : lines[i]) {
-                widths[i] = Math.max(widths[i], font.width(line));
-            }
-        }
-        PanelLayout layout = PanelLayout.of(widths);
-        float scale = layout.scaleToFit(WRITE_W, WRITE_H);
+        int total = offers.size();
+        int first = PanelLayout.clampScroll(TradeStore.scroll(state.blockPos), total, VISIBLE_ROWS);
+        int shown = Math.min(VISIBLE_ROWS, total - first);
         int light = state.lightCoords;
 
         pose.pushPose();
@@ -110,36 +110,45 @@ public final class LecternPanelRenderer {
                 quad(p, vc, -PAPER_W / 2f, -PAPER_H / 2f, PAPER_W / 2f, PAPER_H / 2f, 0f,
                         0f, 0f, 1f, 1f, 0xFFFFFFFF, light));
 
-        pose.scale(scale, scale, scale);
-        pose.translate(-layout.width() / 2f, -layout.height() / 2f, 0f);
-        Sheet sheet = new Sheet(layout, scale);
-        for (int row = 0; row < rows; row++) {
-            submitRow(pose, collector, font, sheet, offers.get(row), lines[row], layout.rowY(row) + 1, light);
+        // Writing starts at the top-left of the writing area (the far, high end of the plate).
+        pose.translate(-WRITE_W / 2f, -WRITE_H / 2f, 0f);
+        pose.scale(SCALE, SCALE, SCALE);
+        for (int i = 0; i < shown; i++) {
+            OfferSnapshot offer = offers.get(first + i);
+            submitRow(pose, collector, font, offer, wrapLabel(font, offer), PanelLayout.rowY(i) + 1, light);
+        }
+        // Scroll marks in the right-hand rim when rows are hidden above or below.
+        int markX = PanelLayout.WIDTH + 2;
+        if (first > 0) {
+            text(pose, collector, Component.literal("↑").getVisualOrderText(), markX,
+                    PanelLayout.rowY(0) + 1, light, INK);
+        }
+        if (first + shown < total) {
+            text(pose, collector, Component.literal("↓").getVisualOrderText(), markX,
+                    PanelLayout.rowY(shown - 1) + 10, light, INK);
         }
         pose.popPose();
     }
 
-    /** Maps writing-area pixels to paper texture coordinates, for washes that match the sheet. */
-    private record Sheet(PanelLayout layout, float scale) {
-        float u(float x) {
-            return ((x - layout.width() / 2f) * scale + PAPER_W / 2f) / PAPER_W;
-        }
-
-        float v(float y) {
-            return ((y - layout.height() / 2f) * scale + PAPER_H / 2f) / PAPER_H;
-        }
+    /** Paper texture coordinates under a point of the writing, for washes that match the sheet. */
+    private static float u(float x) {
+        return (x * SCALE + (PAPER_W - WRITE_W) / 2f) / PAPER_W;
     }
 
-    private static void submitRow(PoseStack pose, SubmitNodeCollector collector, Font font, Sheet sheet,
-                                  OfferSnapshot offer, List<FormattedCharSequence> label, int y, int light) {
+    private static float v(float y) {
+        return (y * SCALE + (PAPER_H - WRITE_H) / 2f) / PAPER_H;
+    }
+
+    private static void submitRow(PoseStack pose, SubmitNodeCollector collector, Font font, OfferSnapshot offer,
+                                  List<FormattedCharSequence> label, int y, int light) {
         int colour = offer.outOfStock() ? SOLD_OUT : INK;
-        submitStack(pose, collector, font, sheet, offer.costA(), PanelLayout.COST_A_X, y, light, colour);
+        submitStack(pose, collector, font, offer.costA(), PanelLayout.COST_A_X, y, light, colour);
         if (!offer.costB().isEmpty()) {
-            submitStack(pose, collector, font, sheet, offer.costB(), PanelLayout.COST_B_X, y, light, colour);
+            submitStack(pose, collector, font, offer.costB(), PanelLayout.COST_B_X, y, light, colour);
         }
         text(pose, collector, pencil(Component.literal("→")).getVisualOrderText(),
                 PanelLayout.ARROW_X, y + 4, light, colour);
-        submitStack(pose, collector, font, sheet, offer.result(), PanelLayout.RESULT_X, y, light, colour);
+        submitStack(pose, collector, font, offer.result(), PanelLayout.RESULT_X, y, light, colour);
         int lineY = label.size() == 1 ? y + 4 : y;
         for (FormattedCharSequence line : label) {
             text(pose, collector, line, PanelLayout.LABEL_X, lineY, light, colour);
@@ -147,20 +156,14 @@ public final class LecternPanelRenderer {
         }
     }
 
-    /** Each label in pencil, wrapped to at most two lines so long enchant names stay large. */
-    @SuppressWarnings("unchecked")
-    private static List<FormattedCharSequence>[] wrapLabels(Font font, List<OfferSnapshot> offers, int rows) {
-        List<FormattedCharSequence>[] lines = new List[rows];
-        for (int i = 0; i < rows; i++) {
-            OfferSnapshot offer = offers.get(i);
-            MutableComponent label = pencil(OfferLabels.label(offer.result()));
-            if (offer.outOfStock()) {
-                label.withStyle(s -> s.withStrikethrough(true));
-            }
-            List<FormattedCharSequence> split = font.split(label, LINE_WIDTH);
-            lines[i] = split.size() > 2 ? split.subList(0, 2) : split;
+    /** A label in pencil, wrapped to at most two lines so long enchant names stay large. */
+    private static List<FormattedCharSequence> wrapLabel(Font font, OfferSnapshot offer) {
+        MutableComponent label = pencil(OfferLabels.label(offer.result()));
+        if (offer.outOfStock()) {
+            label.withStyle(s -> s.withStrikethrough(true));
         }
-        return lines;
+        List<FormattedCharSequence> split = font.split(label, PanelLayout.LINE_WIDTH);
+        return split.size() > 2 ? split.subList(0, 2) : split;
     }
 
     private static MutableComponent pencil(Component text) {
@@ -172,8 +175,8 @@ public final class LecternPanelRenderer {
         collector.submitText(pose, x, y, text, false, Font.DisplayMode.POLYGON_OFFSET, light, colour, 0, 0);
     }
 
-    private static void submitStack(PoseStack pose, SubmitNodeCollector collector, Font font, Sheet sheet,
-                                    ItemStack stack, int x, int y, int light, int colour) {
+    private static void submitStack(PoseStack pose, SubmitNodeCollector collector, Font font, ItemStack stack,
+                                    int x, int y, int light, int colour) {
         if (stack.isEmpty()) {
             return;
         }
@@ -191,7 +194,7 @@ public final class LecternPanelRenderer {
         // The sheet is twisted as a whole, so the patch still lines up.
         collector.order(1).submitCustomGeometry(pose, RenderTypes.text(PAPER), (p, vc) ->
                 quad(p, vc, x, y, x + 16, y + 16, 0.6f,
-                        sheet.u(x), sheet.v(y), sheet.u(x + 16), sheet.v(y + 16), WASH, light));
+                        u(x), v(y), u(x + 16), v(y + 16), WASH, light));
 
         if (stack.getCount() > 1) {
             String count = Integer.toString(stack.getCount());

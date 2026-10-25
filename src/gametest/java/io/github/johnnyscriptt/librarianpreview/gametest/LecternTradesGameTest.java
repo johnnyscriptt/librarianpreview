@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.npc.villager.Villager;
 import net.minecraft.world.item.trading.MerchantOffer;
+import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.phys.AABB;
@@ -85,10 +86,63 @@ public final class LecternTradesGameTest implements FabricClientGameTest {
             settle(context, world);
             shot(context, "lectern-top");
 
+            checkScrolling(context, world, base);
+
             // Breaking the lectern drops its panel on the next scan.
             world.getServer().runOnServer(server -> server.getPlayerList().getPlayers().getFirst().level()
                     .setBlockAndUpdate(plain, Blocks.AIR.defaultBlockState()));
             context.waitFor(client -> TradeStore.get(plain) == null, 60);
+        }
+    }
+
+    /**
+     * A lectern with more trades than fit: the writing starts at the top, and the mouse wheel
+     * moves it one row at a time without touching the hotbar.
+     */
+    private static void checkScrolling(ClientGameTestContext context, TestSingleplayerContext world, BlockPos base) {
+        BlockPos lectern = base.offset(2, 0, 2);
+        BlockPos at = base.offset(2, 0, 4);
+        world.getServer().runOnServer(s -> s.getPlayerList().getPlayers().getFirst().level().setBlockAndUpdate(
+                lectern, Blocks.LECTERN.defaultBlockState().setValue(LecternBlock.FACING, Direction.NORTH)));
+        spawnLibrarian(world.getServer(), lectern, at);
+        // Five level-1 rolls on one villager: a list as long as a master librarian's.
+        world.getServer().runOnServer(s -> {
+            ServerLevel level = s.getPlayerList().getPlayers().getFirst().level();
+            Villager villager = level.getEntitiesOfClass(Villager.class, new AABB(at).inflate(0.5)).getFirst();
+            MerchantOffers all = new MerchantOffers();
+            for (int i = 0; i < 5; i++) {
+                for (MerchantOffer offer : villager.getOffers()) {
+                    all.add(offer.copy());
+                }
+                villager.setOffers(null);
+            }
+            villager.setOffers(all);
+        });
+        context.waitFor(client -> TradeStore.get(lectern) != null && TradeStore.get(lectern).size() == 10, 100);
+
+        standAt(context, world, base.offset(2, 0, 1));
+        lookAt(context, Vec3.atCenterOf(lectern).add(0, 0.5, 0));
+        settle(context, world);
+        shot(context, "scroll-top");
+
+        int slot = context.computeOnClient(client -> client.player.getInventory().getSelectedSlot());
+        context.getInput().scroll(-2);
+        context.waitTicks(5);
+        int scrolled = context.computeOnClient(client -> TradeStore.scroll(lectern));
+        int slotAfter = context.computeOnClient(client -> client.player.getInventory().getSelectedSlot());
+        if (scrolled != 2 || slotAfter != slot) {
+            throw new AssertionError("wheel should move the sheet 2 rows and leave the hotbar; scroll="
+                    + scrolled + " slot " + slot + "->" + slotAfter);
+        }
+        shot(context, "scroll-middle");
+
+        context.getInput().scroll(-20);
+        context.waitTicks(5);
+        shot(context, "scroll-end");
+        context.getInput().scroll(20);
+        context.waitTicks(5);
+        if (context.computeOnClient(client -> TradeStore.scroll(lectern)) != 0) {
+            throw new AssertionError("scrolling back up should stop at the first trade");
         }
     }
 

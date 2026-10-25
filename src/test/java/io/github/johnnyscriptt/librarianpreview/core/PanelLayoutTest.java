@@ -3,46 +3,53 @@ package io.github.johnnyscriptt.librarianpreview.core;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PanelLayoutTest {
 
     @Test
-    void widthFitsTheWidestLabelAfterTheResultSlot() {
-        PanelLayout layout = PanelLayout.of(new int[] {30, 52});
-        assertEquals(PanelLayout.LABEL_X + 52 + PanelLayout.PADDING, layout.width());
-    }
-
-    @Test
-    void heightStacksRowsWithPadding() {
-        PanelLayout layout = PanelLayout.of(new int[] {10, 10, 10});
-        assertEquals(PanelLayout.PADDING * 2 + 3 * PanelLayout.ROW_HEIGHT, layout.height());
-    }
-
-    @Test
-    void rowsAreCappedAtMaxRows() {
-        PanelLayout layout = PanelLayout.of(new int[PanelLayout.MAX_ROWS + 4]);
-        assertEquals(PanelLayout.MAX_ROWS, layout.rows());
+    void widthFitsTheLabelColumnAfterTheResultSlot() {
+        assertEquals(PanelLayout.LABEL_X + PanelLayout.LINE_WIDTH + PanelLayout.PADDING, PanelLayout.WIDTH);
     }
 
     @Test
     void rowYStartsBelowTopPadding() {
-        PanelLayout layout = PanelLayout.of(new int[] {10, 10});
-        assertEquals(PanelLayout.PADDING, layout.rowY(0));
-        assertEquals(PanelLayout.PADDING + PanelLayout.ROW_HEIGHT, layout.rowY(1));
+        assertEquals(PanelLayout.PADDING, PanelLayout.rowY(0));
+        assertEquals(PanelLayout.PADDING + 2 * PanelLayout.ROW_HEIGHT, PanelLayout.rowY(2));
     }
 
     @Test
-    void scaleFitsTheTighterSideOfTheTarget() {
-        PanelLayout layout = PanelLayout.of(new int[] {10});
-        float scale = layout.scaleToFit(1.0f, 1.0f);
-        float expected = Math.min(1.0f / layout.width(), 1.0f / layout.height());
-        assertEquals(expected, scale, 1e-6);
+    void visibleRowsCountsWholeRowsInsideThePadding() {
+        int height = PanelLayout.PADDING * 2 + 3 * PanelLayout.ROW_HEIGHT + PanelLayout.ROW_HEIGHT - 1;
+        assertEquals(3, PanelLayout.visibleRows(height));
     }
 
     @Test
-    void emptyPanelStillHasAMinimumWidth() {
-        PanelLayout layout = PanelLayout.of(new int[0]);
-        assertEquals(PanelLayout.LABEL_X + PanelLayout.PADDING, layout.width());
-        assertEquals(PanelLayout.PADDING * 2, layout.height());
+    void visibleRowsIsAtLeastOne() {
+        assertEquals(1, PanelLayout.visibleRows(2));
+    }
+
+    @Test
+    void shortListsDoNotScroll() {
+        assertFalse(PanelLayout.scrollable(4, 6));
+        assertFalse(PanelLayout.scrollable(6, 6));
+        assertTrue(PanelLayout.scrollable(7, 6));
+    }
+
+    @Test
+    void scrollStopsAtTheTop() {
+        assertEquals(0, PanelLayout.clampScroll(-3, 9, 6));
+    }
+
+    @Test
+    void scrollStopsWhenTheLastRowIsInView() {
+        assertEquals(3, PanelLayout.clampScroll(5, 9, 6));
+        assertEquals(2, PanelLayout.clampScroll(2, 9, 6));
+    }
+
+    @Test
+    void scrollIsZeroWhenEverythingFits() {
+        assertEquals(0, PanelLayout.clampScroll(4, 3, 6));
     }
 }

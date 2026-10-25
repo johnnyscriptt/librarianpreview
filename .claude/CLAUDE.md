@@ -32,6 +32,9 @@ store and upload conventions. This file only records what is specific to this mo
   centre, then a left-handed GUI frame like sign text.
 - Panel background quads are translucent and depth-sorted: never stack overlapping quads in
   one batch (they z-fight or sort wrong); arrows go in `collector.order(1)`.
+- Sheet writing has one fixed size (`PanelLayout.WIDTH` fills the writing area) and starts
+  at the top; more rows than fit scroll by whole rows. `MouseHandlerMixin` claims the wheel
+  only when aiming at a lectern whose sheet can scroll, accumulating fractional steps.
 - `LecternTradesGameTest` binds NoAI librarians to lecterns and screenshots the result.
 
 ## Upload

@@ -4,7 +4,8 @@
   "package": "io.github.johnnyscriptt.librarianpreview.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "LecternRendererMixin"
+    "LecternRendererMixin",
+    "MouseHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
