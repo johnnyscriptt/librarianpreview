@@ -30,7 +30,7 @@ import java.util.List;
 import static io.github.johnnyscriptt.librarianpreview.LibrarianPreviewMod.MOD_ID;
 
 /**
- * Draws a librarian's trades as pencil notes on a sheet of old paper lying on its lectern,
+ * Draws a librarian's trades in white handwriting on a sheet of old dark paper lying on its lectern,
  * laid out like the rows of the vanilla trade list. Called from the lectern block-entity
  * renderer, so the pose is already at the block's corner.
  */
@@ -53,8 +53,8 @@ public final class LecternPanelRenderer {
     private static final float WRITE_H = PAPER_H * 20f / 24f;
     private static final int LINE_WIDTH = 72;
 
-    private static final int GRAPHITE = 0xFF3A3833;
-    private static final int SOLD_OUT = 0xFF8C867A;
+    private static final int INK = 0xFFFFFFFF;
+    private static final int SOLD_OUT = 0xFF8A8278;
     /** Paper-coloured wash over the item icons so they look sketched onto the sheet. */
     private static final int WASH = 0x70FFFFFF;
 
@@ -132,7 +132,7 @@ public final class LecternPanelRenderer {
 
     private static void submitRow(PoseStack pose, SubmitNodeCollector collector, Font font, Sheet sheet,
                                   OfferSnapshot offer, List<FormattedCharSequence> label, int y, int light) {
-        int colour = offer.outOfStock() ? SOLD_OUT : GRAPHITE;
+        int colour = offer.outOfStock() ? SOLD_OUT : INK;
         submitStack(pose, collector, font, sheet, offer.costA(), PanelLayout.COST_A_X, y, light, colour);
         if (!offer.costB().isEmpty()) {
             submitStack(pose, collector, font, sheet, offer.costB(), PanelLayout.COST_B_X, y, light, colour);

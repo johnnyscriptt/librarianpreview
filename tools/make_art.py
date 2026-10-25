@@ -1,6 +1,6 @@
 """Generates the mod's hand-made pixel art: the aged paper sheet and the pencil font.
 
-The pencil font is derived from vanilla Minecraft's ascii.png (slanted, with graphite grain),
+The pencil font is derived from vanilla Minecraft's ascii.png (slanted, solid so the text colour shows at full strength),
 so pass the path of ascii.png extracted from your own 26.3 client jar:
 
     python tools/make_art.py <path to ascii.png>
@@ -54,7 +54,6 @@ ARROW = [
 
 
 def pencil_font(ascii_png: Path) -> None:
-    rng = random.Random(1907)
     src = Image.open(ascii_png).convert("RGBA")
     out = Image.new("RGBA", (128, 8 * len(PENCIL_ROWS)), (0, 0, 0, 0))
     for out_row, row in enumerate(PENCIL_ROWS):
@@ -68,10 +67,8 @@ def pencil_font(ascii_png: Path) -> None:
                     nx = x + shift
                     if nx >= 8:
                         continue
-                    # Graphite: a light grey grain that the text colour tints.
-                    shade = rng.randint(205, 255)
-                    alpha = rng.randint(165, 255)
-                    out.putpixel((col * 8 + nx, out_row * 8 + y), (shade, shade, shade, alpha))
+                    # Solid white: the text colour tints it.
+                    out.putpixel((col * 8 + nx, out_row * 8 + y), (255, 255, 255, 255))
     font_dir = ASSETS / "textures" / "font"
     font_dir.mkdir(parents=True, exist_ok=True)
     out.save(font_dir / "pencil.png")
@@ -80,8 +77,7 @@ def pencil_font(ascii_png: Path) -> None:
     for y, line in enumerate(ARROW):
         for x, c in enumerate(line):
             if c == "#":
-                shade = rng.randint(205, 255)
-                arrow.putpixel((x, y), (shade, shade, shade, rng.randint(180, 255)))
+                arrow.putpixel((x, y), (255, 255, 255, 255))
     arrow.save(font_dir / "pencil_arrow.png")
 
     providers = [
@@ -112,8 +108,8 @@ PAPER_W, PAPER_H = 30, 24
 def paper() -> None:
     rng = random.Random(1740)
     img = Image.new("RGBA", (PAPER_W, PAPER_H), (0, 0, 0, 0))
-    base = (222, 205, 163)
-    edge = (176, 148, 98)
+    base = (60, 50, 40)
+    edge = (30, 24, 18)
     stains = [(7, 17, 3.2), (23, 6, 2.4), (19, 19, 1.6)]
     for y in range(PAPER_H):
         for x in range(PAPER_W):
@@ -126,7 +122,7 @@ def paper() -> None:
                 if dist < sr:
                     k = 0.28 * (1 - dist / sr)
                     r, g, b = r - 60 * k, g - 70 * k, b - 80 * k
-            n = rng.randint(-7, 7)
+            n = rng.randint(-4, 4)
             colour = tuple(max(0, min(255, int(c + n))) for c in (r, g, b))
             img.putpixel((x, y), colour + (255,))
     # Ragged edge: nibble the outermost pixels, and tear one corner.

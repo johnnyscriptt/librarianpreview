@@ -29,12 +29,12 @@ public final class OfferLabels {
             }
             first = false;
             Holder<Enchantment> enchantment = entry.getKey();
-            // getFullname styles normal enchantments grey, which vanishes on the grey panel;
-            // keep only the curse red.
+            // getFullname styles normal enchantments grey; drop that so the label takes the
+            // panel's ink colour, and keep only the curse red.
             MutableComponent name = Component.literal(
                     Enchantment.getFullname(enchantment, entry.getIntValue()).getString());
             if (enchantment.is(EnchantmentTags.CURSE)) {
-                name.withStyle(ChatFormatting.DARK_RED);
+                name.withStyle(ChatFormatting.RED);
             }
             label.append(name);
         }
