@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "librarianpreview-gametest",
+  "version": "1.0.0",
+  "name": "Librarian Preview in-game tests",
+  "environment": "*",
+  "entrypoints": {
+    "fabric-client-gametest": [
+      "io.github.johnnyscriptt.librarianpreview.gametest.StoreShotsGameTest",
+      "io.github.johnnyscriptt.librarianpreview.gametest.IconRenderGameTest"
+    ]
+  },
+  "depends": {
+    "librarianpreview": "*"
+  }
+}

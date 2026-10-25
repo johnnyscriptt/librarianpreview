@@ -1,0 +1,17 @@
+{
+  "shots_dir": "../build/run/clientGameTest/screenshots",
+  "out_dir": "gallery",
+  "accent": "#B57CFF",
+  "enlarge": 2,
+  "images": [
+    {
+      "name": "01-the-money-shot.png",
+      "source": "store-01-main.png",
+      "head": "Four to seven words, benefit first",
+      "sub": "One plain sentence that explains the headline",
+      "store_description": "The store's longer description for this image",
+      "position": "top-left",
+      "max_panel": 900
+    }
+  ]
+}

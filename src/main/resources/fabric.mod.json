@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "librarianpreview",
+  "version": "${version}",
+  "name": "Librarian Preview",
+  "description": "Shows a librarian's trades on the lectern it claims, so you can reroll without opening the trade menu.",
+  "authors": [
+    "johnnyscriptt"
+  ],
+  "contact": {
+    "homepage": "https://github.com/johnnyscriptt/librarianpreview",
+    "sources": "https://github.com/johnnyscriptt/librarianpreview",
+    "issues": "https://github.com/johnnyscriptt/librarianpreview/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/librarianpreview/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "io.github.johnnyscriptt.librarianpreview.LibrarianPreviewMod"
+    ],
+    "client": [
+      "io.github.johnnyscriptt.librarianpreview.client.LibrarianPreviewClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*",
+    "minecraft": "~26.3",
+    "java": ">=25"
+  }
+}
